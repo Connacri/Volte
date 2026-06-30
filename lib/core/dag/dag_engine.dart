@@ -11,16 +11,19 @@ class DagEngine {
       from: data["from"],
       to: data["to"],
       amount: BigInt.parse(data["amount"]),
-      approvals: List<String>.from(data["approvals"]),
+      approvals: List<String>.from(data["approvals"] ?? []),
       timestamp: data["timestamp"],
       signature: data["signature"],
     );
 
     ledger[tx.id] = tx;
-
     onCommit?.call(tx);
-
     return true;
+  }
+
+  void add(Transaction tx) {
+    ledger[tx.id] = tx;
+    onCommit?.call(tx);
   }
 
   List<Transaction> all() => ledger.values.toList();

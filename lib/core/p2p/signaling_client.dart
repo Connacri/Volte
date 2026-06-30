@@ -2,33 +2,22 @@ import 'dart:convert';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class SignalingClient {
-  final WebSocketChannel channel;
+  final WebSocketChannel _channel;
 
-  Function(Map<String, dynamic> msg)? onMessage;
+  Function(Map<String, dynamic>)? onMessage;
 
   SignalingClient(String url)
-      : channel = WebSocketChannel.connect(Uri.parse(url)) {
-    channel.stream.listen((event) {
-      final data = jsonDecode(event);
-      onMessage?.call(data);
+      : _channel = WebSocketChannel.connect(Uri.parse(url)) {
+    _channel.stream.listen((event) {
+      onMessage?.call(jsonDecode(event));
     });
   }
 
-  void register(String nodeId) {
-    channel.sink.add(jsonEncode({
-      "type": "register",
-      "id": nodeId,
-    }));
+  void send(Map<String, dynamic> msg) {
+    _channel.sink.add(jsonEncode(msg));
   }
 
-  void sendSignal(String to, Map<String, dynamic> data) {
-    channel.sink.add(jsonEncode({
-      "to": to,
-      ...data,
-    }));
-  }
-
-  void dispose() {
-    channel.sink.close();
+  void close() {
+    _channel.sink.close();
   }
 }

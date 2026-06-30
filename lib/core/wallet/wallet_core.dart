@@ -16,6 +16,8 @@ class WalletCore {
 
   Wallet? get(String address) => _wallets[address];
 
+  List<Wallet> all() => _wallets.values.toList();
+
   bool transfer(String from, String to, BigInt amount) {
     final sender = _wallets[from];
     final receiver = _wallets[to];
@@ -23,8 +25,8 @@ class WalletCore {
     if (sender == null || receiver == null) return false;
     if (sender.balance < amount) return false;
 
-    sender.balance -= amount;
-    receiver.balance += amount;
+    sender.debit(amount);
+    receiver.credit(amount);
 
     return true;
   }

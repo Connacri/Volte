@@ -1,15 +1,35 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../core/p2p/p2p_node.dart';
 
 class ChatProvider extends ChangeNotifier {
+  final P2PNode node;
   final List<Map<String, dynamic>> messages = [];
+  StreamSubscription<Map<String, dynamic>>? _sub;
 
-  void send(String from, String text) {
-    messages.add({
-      "from": from,
-      "text": text,
-      "time": DateTime.now().toIso8601String()
+  ChatProvider(this.node) {
+    _sub = node.messages.listen((msg) {
+      if (msg["data"] is Map && msg["data"]["type"] == "chat") {
+        messages.add(Map<String, dynamic>.from(msg["data"]));
+        notifyListeners();
+      }
     });
+  }
 
+  void send(String text) {
+    if (text.trim().isEmpty) return;
+    node.sendChat(text);
+    messages.add({
+      "from": node.nodeId,
+      "text": text,
+      "time": DateTime.now().toIso8601String(),
+    });
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
   }
 }

@@ -1,25 +1,17 @@
-import '../entities/wallet_entity.dart';
 import '../../wallet/wallet_core.dart';
-import 'package:objectbox/objectbox.dart';
+import '../../wallet/wallet_model.dart';
 
 class WalletRepository {
-  final Box<WalletEntity> box;
+  final List<Wallet> _cache = [];
 
-  WalletRepository(this.box);
-
-  void save(WalletEntity w) {
-    box.put(w);
+  void save(Wallet w) {
+    _cache.add(w);
   }
 
-  List<WalletEntity> all() => box.getAll();
+  List<Wallet> all() => List.unmodifiable(_cache);
 
   void syncFromCore(WalletCore core) {
-    for (final wallet in core.all()) {
-      box.put(WalletEntity(
-        address: wallet.address,
-        publicKey: wallet.publicKey,
-        balance: wallet.balance.toString(),
-      ));
-    }
+    _cache.clear();
+    _cache.addAll(core.all());
   }
 }

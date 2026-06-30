@@ -1,14 +1,9 @@
-import 'package:objectbox/objectbox.dart';
-
-@Entity()
 class TxEntity {
-  int id = 0;
-
-  String txId;
-  String from;
-  String to;
-  String amount;
-  int timestamp;
+  final String txId;
+  final String from;
+  final String to;
+  final String amount;
+  final int timestamp;
 
   TxEntity({
     required this.txId,

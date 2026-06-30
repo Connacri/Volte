@@ -1,24 +1,31 @@
 import 'package:flutter/material.dart';
 import '../../core/p2p/p2p_node.dart';
-import '../../core/p2p/peer.dart';
 
 class NetworkProvider extends ChangeNotifier {
-  late P2PNode node;
+  final P2PNode node;
 
-  bool isConnected = false;
+  NetworkProvider(this.node);
 
-  void init(String nodeId) {
-    node = P2PNode(nodeId);
-    isConnected = true;
+  bool get isConnected => node.health.isAlive(node.nodeId);
+
+  Future<void> init() async {
+    await node.start();
     notifyListeners();
   }
 
-  void addPeer(String id, String address) {
-    node.addPeer(Peer(id: id, address: address));
+  Future<void> connectPeer(String address) async {
+    await node.connectPeer(address);
     notifyListeners();
   }
 
   void broadcast(Map<String, dynamic> msg) {
-    node.broadcast(msg);
+    node.broadcastTx(msg);
+  }
+
+  List<String> get peers => node.p2p.peers.keys.toList();
+
+  Future<void> stop() async {
+    await node.stop();
+    notifyListeners();
   }
 }

@@ -1,12 +1,21 @@
 import 'package:flutter/foundation.dart';
-import '../../core/storage/repositories/wallet_repository.dart';
+
 import '../../core/wallet/wallet_core.dart';
+import '../../core/wallet/wallet_model.dart';
+import '../../core/storage/repositories/wallet_repository.dart';
 
 class WalletProvider extends ChangeNotifier {
-  final WalletRepository repo;
   final WalletCore core;
+  final WalletRepository repo;
 
-  WalletProvider(this.repo, this.core);
+  WalletProvider(this.core, this.repo);
+
+  List<Wallet> get wallets => core.all();
+
+  void createWallet(String address, String pubKey) {
+    core.create(address, pubKey);
+    notifyListeners();
+  }
 
   void send({
     required String from,
@@ -14,10 +23,13 @@ class WalletProvider extends ChangeNotifier {
     required BigInt amount,
   }) {
     final ok = core.transfer(from, to, amount);
-
     if (ok) {
       repo.syncFromCore(core);
       notifyListeners();
     }
+  }
+
+  void load() {
+    notifyListeners();
   }
 }

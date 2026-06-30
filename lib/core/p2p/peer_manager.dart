@@ -8,13 +8,18 @@ class PeerManager {
 
   PeerManager({
     required this.engine,
-    required this.sybil,
-  });
+    SybilProtection? sybil,
+  }) : sybil = sybil ?? SybilProtection();
 
   Future<void> addPeer(Peer peer) async {
     if (sybil.isBlocked(peer.id)) return;
-
     await engine.connectPeer(peer);
+    sybil.increaseTrust(peer.id);
+  }
+
+  void registerPeer(Peer peer) {
+    if (sybil.isBlocked(peer.id)) return;
+    engine.peers[peer.id] = peer;
     sybil.increaseTrust(peer.id);
   }
 

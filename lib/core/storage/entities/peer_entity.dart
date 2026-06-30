@@ -1,13 +1,8 @@
-import 'package:objectbox/objectbox.dart';
-
-@Entity()
 class PeerEntity {
-  int id = 0;
-
-  String peerId;
-  String address;
-  bool trusted;
-  int lastSeen;
+  final String peerId;
+  final String address;
+  final bool trusted;
+  final int lastSeen;
 
   PeerEntity({
     required this.peerId,

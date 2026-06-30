@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'package:crypto/crypto.dart';
+import 'package:crypto/crypto.dart' as crypto;
 
-class Hash {
+class CryptoHash {
   static String sha256(String input) {
-    return sha256.convert(utf8.encode(input)).toString();
+    return crypto.sha256.convert(utf8.encode(input)).toString();
   }
 }

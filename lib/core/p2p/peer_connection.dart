@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 class PeerConnection {
@@ -9,7 +10,8 @@ class PeerConnection {
   Future<void> init() async {
     final config = {
       "iceServers": [
-        {"urls": "stun:stun.l.google.com:19302"}
+        {"urls": "stun:stun.l.google.com:19302"},
+        {"urls": "stun:stun1.l.google.com:19302"},
       ]
     };
 
@@ -17,11 +19,58 @@ class PeerConnection {
 
     _pc!.onDataChannel = (channel) {
       _channel = channel;
-
       _channel!.onMessage = (msg) {
         onMessage?.call(msg.text);
       };
     };
+
+    _pc!.onIceCandidate = (candidate) {
+      if (_onIceCandidate != null) {
+        _onIceCandidate!(candidate.toMap());
+      }
+    };
+
+    _pc!.onIceConnectionState = (state) {
+      if (state == RTCIceConnectionState.RTCIceConnectionStateDisconnected) {
+        _onDisconnect?.call();
+      }
+    };
+  }
+
+  void Function(Map<String, dynamic>)? _onIceCandidate;
+  void onIceCandidate(void Function(Map<String, dynamic>) cb) {
+    _onIceCandidate = cb;
+  }
+
+  void Function()? _onDisconnect;
+  void onDisconnect(void Function() cb) {
+    _onDisconnect = cb;
+  }
+
+  Future<Map<String, dynamic>> createOffer() async {
+    final offer = await _pc!.createOffer();
+    await _pc!.setLocalDescription(offer);
+    return offer.toMap();
+  }
+
+  Future<Map<String, dynamic>> createAnswer() async {
+    final answer = await _pc!.createAnswer();
+    await _pc!.setLocalDescription(answer);
+    return answer.toMap();
+  }
+
+  Future<void> setRemoteDescription(Map<String, dynamic> sdp) async {
+    final desc = RTCSessionDescription(sdp["sdp"], sdp["type"]);
+    await _pc!.setRemoteDescription(desc);
+  }
+
+  Future<void> addIceCandidate(Map<String, dynamic> candidate) async {
+    final cand = RTCIceCandidate(
+      candidate["candidate"],
+      candidate["sdpMid"],
+      candidate["sdpMLineIndex"],
+    );
+    await _pc!.addCandidate(cand);
   }
 
   Future<RTCDataChannel> createChannel() async {

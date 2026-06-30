@@ -1,16 +1,13 @@
 import '../entities/tx_entity.dart';
-import 'package:objectbox/objectbox.dart';
 
 class TxRepository {
-  final Box<TxEntity> box;
-
-  TxRepository(this.box);
+  final List<TxEntity> _cache = [];
 
   void save(TxEntity tx) {
-    box.put(tx);
+    _cache.add(tx);
   }
 
   List<TxEntity> getAll() {
-    return box.getAll();
+    return List.unmodifiable(_cache);
   }
 }

@@ -1,5 +1,3 @@
-import 'dart:math';
-
 class Wallet {
   final String address;
   BigInt balance;
