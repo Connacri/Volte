@@ -31,16 +31,22 @@ jobs:
         id: v
         run: |
           git fetch --tags --force
-          LAST_TAG=$(git tag -l "v*" | sort -V | tail -n1)
-          if [ -z "$LAST_TAG" ]; then
-            LAST_TAG="v1.0.0"
-          fi
+          # Determine the starting point: latest local tag
+          LAST_TAG=$(git tag -l "v*" | sort -V | tail -n1 || echo "v1.0.0")
           VERSION=${LAST_TAG#v}
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
-          PATCH=$((PATCH + 1))
-          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          echo "Computed version: $NEW_VERSION"
+
+          # Keep incrementing until we find a tag that doesn't exist
+          while : ; do
+            PATCH=$((PATCH + 1))
+            CANDIDATE="$MAJOR.$MINOR.$PATCH"
+            if ! git tag -l "v$CANDIDATE" | grep -q .; then
+              break
+            fi
+          done
+
+          echo "version=$CANDIDATE" >> "$GITHUB_OUTPUT"
+          echo "Computed version: $CANDIDATE"
 
   ##############################################################################
   # Quality: lint + test
@@ -225,10 +231,18 @@ jobs:
 
       - name: Create Git Tag
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git tag "v${{ needs.version.outputs.version }}"
-          git push origin "v${{ needs.version.outputs.version }}"
+          git fetch --tags --force
+          TAG="v${{ needs.version.outputs.version }}"
+          if git tag -l "$TAG" | grep -q .; then
+            echo "Tag $TAG already exists, skipping"
+            echo "exists=true" >> "$GITHUB_ENV"
+          else
+            echo "exists=false" >> "$GITHUB_ENV"
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
