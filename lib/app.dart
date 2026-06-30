@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -29,13 +31,19 @@ class _VolteAppState extends State<VolteApp> {
   void initState() {
     super.initState();
     _node = P2PNode("volte-${DateTime.now().millisecondsSinceEpoch}");
-    _bootstrap();
+    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+      _bootstrap();
+    }
   }
 
   Future<void> _bootstrap() async {
-    final seeds = BootstrapService.getSeeds();
-    if (seeds.isNotEmpty) {
-      await _node.start(signalingUrl: seeds.first);
+    try {
+      final seeds = BootstrapService.getSeeds();
+      if (seeds.isNotEmpty) {
+        await _node.start(signalingUrl: seeds.first);
+      }
+    } catch (_) {
+      // Environment sans serveur signaling
     }
   }
 
