@@ -16,6 +16,11 @@ class ChatProvider extends ChangeNotifier {
     });
   }
 
+  List<String> get onlinePeers =>
+      node.p2p.peers.keys.where((id) => id != node.nodeId).toList();
+
+  String get myId => node.nodeId;
+
   void send(String text) {
     if (text.trim().isEmpty) return;
     node.sendChat(text);

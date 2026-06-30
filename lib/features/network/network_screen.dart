@@ -9,48 +9,64 @@ class NetworkScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final net = Provider.of<NetworkProvider>(context);
+    final seeds = BootstrapService.getSeeds();
 
     return Scaffold(
-      appBar: AppBar(title: const Text("P2P Network")),
+      appBar: AppBar(title: const Text("Réseau")),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ElevatedButton.icon(
-              onPressed: () => net.init(),
-              icon: const Icon(Icons.play_arrow),
-              label: const Text("Start Node"),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: () {
-                final seeds = BootstrapService.getSeeds();
-                for (final seed in seeds) {
-                  net.connectPeer(seed);
-                }
-              },
-              icon: const Icon(Icons.wifi_tethering),
-              label: const Text("Connect to Seed Nodes"),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.circle,
+                      size: 16,
+                      color: net.isConnected ? Colors.green : Colors.red,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      net.isConnected ? "Connecté" : "Déconnecté",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: net.isConnected ? Colors.green : Colors.red,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text("${net.peers.length} pair(s)"),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 16),
-            const Text("Connected Peers:"),
+            Text(
+              "Serveur signaling : ${seeds.isNotEmpty ? seeds.first : 'aucun'}",
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            const Text("Pairs connectés :"),
             const SizedBox(height: 8),
             Expanded(
-              child: ListView.builder(
-                itemCount: net.peers.length,
-                itemBuilder: (context, index) {
-                  final peerId = net.peers[index];
-                  return ListTile(
-                    leading: Icon(
-                      Icons.circle,
-                      color: net.isConnected ? Colors.green : Colors.red,
-                      size: 12,
+              child: net.peers.isEmpty
+                  ? const Center(
+                      child: Text("Aucun pair pour le moment"),
+                    )
+                  : ListView.builder(
+                      itemCount: net.peers.length,
+                      itemBuilder: (context, index) {
+                        final peerId = net.peers[index];
+                        return ListTile(
+                          leading: const Icon(Icons.person, color: Colors.green),
+                          title: Text(peerId),
+                          subtitle: const Text("Connecté"),
+                        );
+                      },
                     ),
-                    title: Text(peerId),
-                  );
-                },
-              ),
             ),
           ],
         ),

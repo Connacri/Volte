@@ -8,33 +8,53 @@ import 'features/chat/chat_provider.dart';
 import 'features/ledger/ledger_provider.dart';
 import 'features/ledger/ledger_screen.dart';
 import 'features/network/network_provider.dart';
+import 'features/network/network_screen.dart';
 
 import 'core/wallet/wallet_core.dart';
 import 'core/storage/repositories/wallet_repository.dart';
 import 'core/p2p/p2p_node.dart';
+import 'core/bootstrap/bootstrap_service.dart';
 
-class VolteApp extends StatelessWidget {
+class VolteApp extends StatefulWidget {
   const VolteApp({super.key});
+
+  @override
+  State<VolteApp> createState() => _VolteAppState();
+}
+
+class _VolteAppState extends State<VolteApp> {
+  late final P2PNode _node;
+
+  @override
+  void initState() {
+    super.initState();
+    _node = P2PNode("volte-${DateTime.now().millisecondsSinceEpoch}");
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    final seeds = BootstrapService.getSeeds();
+    if (seeds.isNotEmpty) {
+      await _node.start(signalingUrl: seeds.first);
+    }
+  }
+
+  @override
+  void dispose() {
+    _node.stop();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final walletCore = WalletCore();
-    final node = P2PNode("node-${DateTime.now().millisecondsSinceEpoch}");
 
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => WalletProvider(walletCore, WalletRepository()),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => ChatProvider(node),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => LedgerProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => NetworkProvider(node),
-        ),
+        ChangeNotifierProvider(create: (_) => WalletProvider(walletCore, WalletRepository())),
+        ChangeNotifierProvider(create: (_) => ChatProvider(_node)),
+        ChangeNotifierProvider(create: (_) => LedgerProvider()),
+        ChangeNotifierProvider(create: (_) => NetworkProvider(_node)),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -60,23 +80,39 @@ class Root extends StatefulWidget {
 class _RootState extends State<Root> {
   int index = 0;
 
-  final screens = const [
-    WalletScreen(),
-    ChatScreen(),
-    LedgerScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final net = context.watch<NetworkProvider>();
+    final online = net.peers.length;
+
     return Scaffold(
-      body: screens[index],
+      body: IndexedStack(index: index, children: const [
+        WalletScreen(),
+        ChatScreen(),
+        LedgerScreen(),
+        NetworkScreen(),
+      ]),
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (i) => setState(() => index = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.wallet), label: "Wallet"),
-          NavigationDestination(icon: Icon(Icons.chat), label: "Chat"),
-          NavigationDestination(icon: Icon(Icons.book), label: "Ledger"),
+        destinations: [
+          const NavigationDestination(icon: Icon(Icons.wallet), label: "Wallet"),
+          NavigationDestination(
+            icon: Badge(
+              isLabelVisible: online > 0,
+              label: Text("$online"),
+              child: const Icon(Icons.chat),
+            ),
+            label: "Chat",
+          ),
+          const NavigationDestination(icon: Icon(Icons.book), label: "Ledger"),
+          NavigationDestination(
+            icon: Icon(
+              Icons.wifi,
+              color: net.isConnected ? Colors.green : Colors.grey,
+            ),
+            label: "Network",
+          ),
         ],
       ),
     );
