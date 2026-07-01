@@ -26,11 +26,15 @@ class VolteApp extends StatefulWidget {
 
 class _VolteAppState extends State<VolteApp> {
   late final P2PNode _node;
+  late final WalletCore _walletCore;
+  late final WalletRepository _walletRepo;
 
   @override
   void initState() {
     super.initState();
     _node = P2PNode("volte-${DateTime.now().millisecondsSinceEpoch}");
+    _walletCore = WalletCore();
+    _walletRepo = WalletRepository();
     if (!Platform.environment.containsKey('FLUTTER_TEST')) {
       _bootstrap();
     }
@@ -55,13 +59,13 @@ class _VolteAppState extends State<VolteApp> {
 
   @override
   Widget build(BuildContext context) {
-    final walletCore = WalletCore();
-
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => WalletProvider(walletCore, WalletRepository())),
+        ChangeNotifierProvider(
+          create: (_) => WalletProvider(_walletCore, _walletRepo, node: _node),
+        ),
         ChangeNotifierProvider(create: (_) => ChatProvider(_node)),
-        ChangeNotifierProvider(create: (_) => LedgerProvider()),
+        ChangeNotifierProvider(create: (_) => LedgerProvider(_node)),
         ChangeNotifierProvider(create: (_) => NetworkProvider(_node)),
       ],
       child: MaterialApp(
