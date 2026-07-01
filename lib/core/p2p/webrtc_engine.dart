@@ -10,10 +10,8 @@ class WebRTCNetworkEngine {
   Function(String from, String msg)? onMessage;
   void Function(String peerId)? onPeerConnected;
   void Function(String peerId)? onPeerDisconnected;
+  void Function(String peerId, Map<String, dynamic> candidate)? onIceCandidate;
 
-  /// Point d'entrée unique pour enregistrer/mettre à jour un peer.
-  /// Tout code qui ajoute un peer (engine ou PeerManager) doit passer
-  /// par ici pour que onPeerConnected soit systématiquement déclenché.
   void registerPeer(Peer peer) {
     final isNew = !peers.containsKey(peer.id);
     peers[peer.id] = peer;
@@ -27,9 +25,8 @@ class WebRTCNetworkEngine {
     conn.onMessage = (msg) {
       onMessage?.call(peer.id, msg);
     };
-    // Câblage manquant : sans ça, une déconnexion ICE réelle (wifi coupé,
-    // app fermée côté distant) ne fait jamais sortir le pair de `peers`.
     conn.onDisconnect(() => removePeer(peer.id));
+    conn.onIceCandidate((candidate) => onIceCandidate?.call(peer.id, candidate));
 
     await conn.createChannel();
     _connections[peer.id] = conn;
@@ -44,6 +41,7 @@ class WebRTCNetworkEngine {
       onMessage?.call(peerId, msg);
     };
     conn.onDisconnect(() => removePeer(peerId));
+    conn.onIceCandidate((candidate) => onIceCandidate?.call(peerId, candidate));
 
     final offer = await conn.createOffer();
     _connections[peerId] = conn;
@@ -57,7 +55,7 @@ class WebRTCNetworkEngine {
     await conn.setRemoteDescription(sdp);
   }
 
-  Future<PeerConnection> acceptConnection(String peerId, dynamic sdp) async {
+  Future<Map<String, dynamic>?> acceptConnection(String peerId, dynamic sdp) async {
     final conn = PeerConnection();
     await conn.init();
 
@@ -65,12 +63,13 @@ class WebRTCNetworkEngine {
       onMessage?.call(peerId, msg);
     };
     conn.onDisconnect(() => removePeer(peerId));
+    conn.onIceCandidate((candidate) => onIceCandidate?.call(peerId, candidate));
 
     await conn.setRemoteDescription(sdp);
-    await conn.createAnswer();
+    final answer = await conn.createAnswer();
     _connections[peerId] = conn;
     registerPeer(Peer(id: peerId, address: "", lastSeen: DateTime.now()));
-    return conn;
+    return answer;
   }
 
   Future<void> handleIce(String peerId, dynamic candidate) async {
