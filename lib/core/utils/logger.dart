@@ -1,13 +1,14 @@
+import "package:flutter/foundation.dart";
 class Logger {
   static void info(String msg) {
-    print("[INFO] $msg");
+    debugPrint("[INFO] $msg");
   }
 
   static void warn(String msg) {
-    print("[WARN] $msg");
+    debugPrint("[WARN] $msg");
   }
 
   static void error(String msg) {
-    print("[ERROR] $msg");
+    debugPrint("[ERROR] $msg");
   }
 }

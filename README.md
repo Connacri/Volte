@@ -127,3 +127,31 @@ Distribué sous licence MIT. Voir [LICENSE](LICENSE) pour plus d'informations.
 <p align="center">
   <sub>Built with ❤️ using Flutter, WebRTC, Ed25519 & DAG Consensus</sub>
 </p>
+
+## 📖 Tutoriel d'utilisation
+
+Pour tester Volte, il est recommandé d'utiliser deux instances de l'application (par exemple sur deux téléphones ou un téléphone et un PC).
+
+### 1. Connexion au Réseau
+- Lancez l'application.
+- Allez dans l'onglet **Network**.
+- Assurez-vous d'être "Online" (connecté au serveur de signalisation).
+- Une fois qu'un autre utilisateur se connecte, il apparaîtra dans la liste des pairs. WebRTC établira alors une connexion directe.
+
+### 2. Création d'un Portefeuille
+- Allez dans l'onglet **Wallet**.
+- Appuyez sur le bouton **"Créer un wallet"**.
+- Un nouveau portefeuille sera généré avec une adresse unique et un solde initial de 1000 NOVA.
+- Vos portefeuilles sont sauvegardés localement et persisteront après le redémarrage de l'app.
+
+### 3. Chat P2P
+- Allez dans l'onglet **Chat**.
+- Si vous avez au moins un pair connecté (indiqué par le bandeau vert), vous pouvez envoyer des messages.
+- Les messages sont diffusés directement à tous vos pairs via WebRTC.
+
+### 4. Transactions et Ledger
+- Dans l'onglet **Wallet**, utilisez le formulaire **"Send"** pour envoyer des tokens.
+- Copiez l'adresse d'un ami (depuis son onglet Wallet) et collez-la dans le champ "Recipient address".
+- Indiquez le montant et appuyez sur **"Send"**.
+- La transaction est enregistrée localement dans le **DAG** et diffusée sur le réseau.
+- Allez dans l'onglet **Ledger** pour voir l'historique complet de toutes les transactions du réseau.

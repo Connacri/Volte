@@ -4,18 +4,17 @@ class WalletCore {
   final Map<String, Wallet> _wallets = {};
 
   Wallet create(String address, String pubKey) {
+    // Pour la démo, on donne 1000 NOVA à chaque nouveau wallet
     final wallet = Wallet(
       address: address,
       publicKey: pubKey,
-      balance: BigInt.from(0),
+      balance: BigInt.from(1000) * BigInt.from(10).pow(18),
     );
 
     _wallets[address] = wallet;
     return wallet;
   }
 
-  /// Réinjecte un wallet déjà existant (ex: rechargé depuis le repository)
-  /// sans réinitialiser son solde à zéro.
   void restore(Wallet wallet) {
     _wallets[wallet.address] = wallet;
   }
@@ -26,13 +25,15 @@ class WalletCore {
 
   bool transfer(String from, String to, BigInt amount) {
     final sender = _wallets[from];
-    final receiver = _wallets[to];
-
-    if (sender == null || receiver == null) return false;
+    if (sender == null) return false;
     if (sender.balance < amount) return false;
 
     sender.debit(amount);
-    receiver.credit(amount);
+
+    final receiver = _wallets[to];
+    if (receiver != null) {
+      receiver.credit(amount);
+    }
 
     return true;
   }
