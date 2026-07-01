@@ -32,7 +32,16 @@ class P2PNode {
 
   Stream<Map<String, dynamic>> get messages => _messageController.stream;
 
+  /// Émet un événement à chaque changement d'état réseau pertinent pour
+  /// l'UI : connexion/déconnexion de peer, ou tick de santé périodique.
+  /// NetworkProvider s'abonne à ce stream pour appeler notifyListeners().
+  final StreamController<void> _networkChangeController =
+      StreamController<void>.broadcast();
+
+  Stream<void> get networkChanges => _networkChangeController.stream;
+
   SignalingClient? _signaling;
+  Timer? _healthTimer;
 
   P2PNode(this.nodeId) {
     crypto = CryptoService();
@@ -54,11 +63,6 @@ class P2PNode {
         final data = jsonDecode(msg);
         _messageController.add({"from": from, "data": data});
 
-        // NB: gossip.receive()/onBroadcast était câblé ici auparavant mais
-        // enveloppait les données dans {"from":..,"payload": raw}, donc
-        // data["type"] ne valait jamais "tx" et le DAG ne recevait jamais
-        // les transactions reçues du réseau. On route directement depuis
-        // le message décodé.
         if (data is Map && data["type"] == "tx") {
           dag.addFromNetwork(Map<String, dynamic>.from(data));
         }
@@ -69,6 +73,15 @@ class P2PNode {
 
     dag.onCommit = (tx) {
       sync.push(tx);
+    };
+
+    p2p.onPeerConnected = (peerId) {
+      health.ping(peerId);
+      if (!_networkChangeController.isClosed) _networkChangeController.add(null);
+    };
+
+    p2p.onPeerDisconnected = (peerId) {
+      if (!_networkChangeController.isClosed) _networkChangeController.add(null);
     };
   }
 
@@ -91,7 +104,13 @@ class P2PNode {
     }
 
     health.ping(nodeId);
-    Timer.periodic(const Duration(seconds: 10), (_) => health.ping(nodeId));
+    if (!_networkChangeController.isClosed) _networkChangeController.add(null);
+
+    _healthTimer?.cancel();
+    _healthTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      health.ping(nodeId);
+      if (!_networkChangeController.isClosed) _networkChangeController.add(null);
+    });
   }
 
   void _handleSignal(Map<String, dynamic> msg) {
@@ -159,9 +178,6 @@ class P2PNode {
   }
 
   void broadcastTx(Map<String, dynamic> txData) {
-    // Commit local d'abord (dedup naturel via l'id dans DagEngine.ledger),
-    // pour que l'expéditeur voie sa propre transaction dans son Ledger
-    // même s'il est temporairement seul sur le réseau.
     dag.addFromNetwork(txData);
     p2p.broadcast({"type": "tx", ...txData});
   }
@@ -176,9 +192,11 @@ class P2PNode {
   }
 
   Future<void> stop() async {
+    _healthTimer?.cancel();
     await p2p.dispose();
     _signaling?.close();
     await _messageController.close();
+    await _networkChangeController.close();
     Logger.info("P2P node $nodeId stopped");
   }
 }
