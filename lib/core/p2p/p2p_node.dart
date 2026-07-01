@@ -43,6 +43,12 @@ class P2PNode {
   SignalingClient? _signaling;
   Timer? _healthTimer;
 
+  /// Reflète la joignabilité réelle du serveur de signaling (handshake WS
+  /// abouti / coupé), câblée depuis SignalingClient.onConnect/onDisconnect.
+  /// À ne pas confondre avec health.isAlive(nodeId), qui ne mesure que
+  /// "le timer local tourne" — donc toujours vrai, même hors ligne.
+  bool isSignalingConnected = false;
+
   P2PNode(this.nodeId) {
     crypto = CryptoService();
     p2p = WebRTCNetworkEngine();
@@ -94,8 +100,14 @@ class P2PNode {
     if (signalingUrl != null) {
       _signaling = SignalingClient(signalingUrl);
       _signaling!.onConnect = () {
+        isSignalingConnected = true;
         _signaling!.send({"type": "register", "id": nodeId});
         Logger.info("Registered on signaling server");
+        if (!_networkChangeController.isClosed) _networkChangeController.add(null);
+      };
+      _signaling!.onDisconnect = () {
+        isSignalingConnected = false;
+        if (!_networkChangeController.isClosed) _networkChangeController.add(null);
       };
       _signaling!.onMessage = (msg) {
         health.ping(nodeId);
