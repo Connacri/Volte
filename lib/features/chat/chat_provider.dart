@@ -6,6 +6,7 @@ class ChatProvider extends ChangeNotifier {
   final P2PNode node;
   final List<Map<String, dynamic>> messages = [];
   StreamSubscription<Map<String, dynamic>>? _sub;
+StreamSubscription<void>? _networkSub;          // ← ajouté
 
   ChatProvider(this.node) {
     _sub = node.messages.listen((msg) {
@@ -14,6 +15,8 @@ class ChatProvider extends ChangeNotifier {
         notifyListeners();
       }
     });
+
+    _networkSub = node.networkChanges.listen((_) => notifyListeners());  // ← ajouté
   }
 
   List<String> get onlinePeers =>
