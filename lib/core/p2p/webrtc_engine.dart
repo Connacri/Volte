@@ -27,6 +27,9 @@ class WebRTCNetworkEngine {
     conn.onMessage = (msg) {
       onMessage?.call(peer.id, msg);
     };
+    // Câblage manquant : sans ça, une déconnexion ICE réelle (wifi coupé,
+    // app fermée côté distant) ne fait jamais sortir le pair de `peers`.
+    conn.onDisconnect(() => removePeer(peer.id));
 
     await conn.createChannel();
     _connections[peer.id] = conn;
@@ -40,6 +43,7 @@ class WebRTCNetworkEngine {
     conn.onMessage = (msg) {
       onMessage?.call(peerId, msg);
     };
+    conn.onDisconnect(() => removePeer(peerId));
 
     final offer = await conn.createOffer();
     _connections[peerId] = conn;
@@ -60,6 +64,7 @@ class WebRTCNetworkEngine {
     conn.onMessage = (msg) {
       onMessage?.call(peerId, msg);
     };
+    conn.onDisconnect(() => removePeer(peerId));
 
     await conn.setRemoteDescription(sdp);
     await conn.createAnswer();
