@@ -40,8 +40,6 @@ class ChatProvider extends ChangeNotifier {
 
     node.sendChat(text);
 
-    // broadcast() n'envoie qu'aux pairs distants (jamais à soi-même),
-    // donc sans cet ajout local ton propre message n'apparaît nulle part.
     messages.add({
       "from": node.nodeId,
       "text": text,
