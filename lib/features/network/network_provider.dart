@@ -10,11 +10,13 @@ class NetworkProvider extends ChangeNotifier {
     _sub = node.networkChanges.listen((_) => notifyListeners());
   }
 
-  bool get isConnected => node.health.isAlive(node.nodeId);
+  /// "Connecté" = joint au serveur de signaling (peut découvrir/accepter
+  /// des pairs) OU déjà en relation avec au moins un pair (le mesh peut
+  /// survivre temporairement à une coupure du signaling).
+  /// health.isAlive(node.nodeId) ne doit plus être utilisé ici : il ne
+  /// mesure que "mon propre Timer local tourne", donc toujours vrai.
+  bool get isConnected => node.isSignalingConnected || peers.isNotEmpty;
 
-  /// NB: ne PAS appeler node.start() ici sans signalingUrl — ça régénère
-  /// une paire de clés Ed25519. Le démarrage réel se fait dans
-  /// app.dart::_bootstrap() avec l'URL de signaling.
   void init() {
     notifyListeners();
   }
