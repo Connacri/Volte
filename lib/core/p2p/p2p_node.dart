@@ -32,9 +32,6 @@ class P2PNode {
 
   Stream<Map<String, dynamic>> get messages => _messageController.stream;
 
-  /// Émet un événement à chaque changement d'état réseau pertinent pour
-  /// l'UI : connexion/déconnexion de peer, ou tick de santé périodique.
-  /// NetworkProvider s'abonne à ce stream pour appeler notifyListeners().
   final StreamController<void> _networkChangeController =
       StreamController<void>.broadcast();
 
@@ -43,10 +40,6 @@ class P2PNode {
   SignalingClient? _signaling;
   Timer? _healthTimer;
 
-  /// Reflète la joignabilité réelle du serveur de signaling (handshake WS
-  /// abouti / coupé), câblée depuis SignalingClient.onConnect/onDisconnect.
-  /// À ne pas confondre avec health.isAlive(nodeId), qui ne mesure que
-  /// "le timer local tourne" — donc toujours vrai, même hors ligne.
   bool isSignalingConnected = false;
 
   P2PNode(this.nodeId) {
@@ -88,6 +81,15 @@ class P2PNode {
 
     p2p.onPeerDisconnected = (peerId) {
       if (!_networkChangeController.isClosed) _networkChangeController.add(null);
+    };
+
+    p2p.onIceCandidate = (peerId, candidate) {
+      _signaling?.send({
+        "type": "ice",
+        "to": peerId,
+        "from": nodeId,
+        "candidate": candidate,
+      });
     };
   }
 
@@ -157,7 +159,15 @@ class P2PNode {
   }
 
   Future<void> _handleOffer(String peerId, dynamic sdp) async {
-    await p2p.acceptConnection(peerId, sdp);
+    final answer = await p2p.acceptConnection(peerId, sdp);
+    if (answer != null && _signaling != null) {
+      _signaling!.send({
+        "type": "answer",
+        "to": peerId,
+        "from": nodeId,
+        "sdp": answer,
+      });
+    }
     peerManager.registerPeer(Peer(id: peerId, address: "", lastSeen: DateTime.now()));
     health.ping(peerId);
   }
