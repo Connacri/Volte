@@ -8,9 +8,11 @@ class SignalingClient {
   WebSocketChannel? _channel;
   StreamSubscription? _subscription;
   bool _isClosed = false;
+  bool _wasConnected = false;
 
   Function(Map<String, dynamic>)? onMessage;
   Function()? onConnect;
+  Function()? onDisconnect;
 
   SignalingClient(this.url) {
     _connect();
@@ -22,12 +24,21 @@ class SignalingClient {
     Logger.info("Connecting to signaling server: $url");
     try {
       _channel = WebSocketChannel.connect(Uri.parse(url));
-      // In web_socket_channel, we don't have a direct "onOpen".
-      // It's usually considered connected when we start listening or sending.
-      // We'll trigger onConnect immediately after connect call for simplicity,
-      // or we could wait for the first message if the server sends one.
-      // But re-registering is usually safe to do immediately.
-      onConnect?.call();
+
+      // `channel.ready` (web_socket_channel >=3.0.0) est un Future qui ne se
+      // complète qu'une fois le handshake WebSocket réellement établi (ou
+      // lève une erreur s'il échoue). C'est le bon signal de "connecté" —
+      // contrairement à l'appel immédiat après WebSocketChannel.connect(),
+      // qui ne garantit rien sur l'état réel du socket.
+      _channel!.ready.then((_) {
+        if (_isClosed) return;
+        _wasConnected = true;
+        Logger.info("Signaling WebSocket handshake established");
+        onConnect?.call();
+      }).catchError((e) {
+        Logger.error("Signaling WebSocket handshake failed: $e");
+        _reconnect();
+      });
 
       _subscription = _channel!.stream.listen(
         (event) {
@@ -56,6 +67,14 @@ class SignalingClient {
   void _reconnect() {
     if (_isClosed) return;
 
+    // On ne déclenche onDisconnect que si on avait effectivement atteint
+    // l'état "connecté" au moins une fois — évite un onDisconnect fantôme
+    // lors d'une toute première tentative qui échoue avant tout handshake.
+    if (_wasConnected) {
+      _wasConnected = false;
+      onDisconnect?.call();
+    }
+
     _subscription?.cancel();
     _channel?.sink.close();
 
@@ -77,6 +96,10 @@ class SignalingClient {
 
   void close() {
     _isClosed = true;
+    if (_wasConnected) {
+      _wasConnected = false;
+      onDisconnect?.call();
+    }
     _subscription?.cancel();
     _channel?.sink.close();
   }
