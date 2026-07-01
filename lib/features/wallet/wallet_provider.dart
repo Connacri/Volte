@@ -1,3 +1,4 @@
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../core/crypto/signature.dart';
@@ -16,16 +17,15 @@ class WalletProvider extends ChangeNotifier {
   final CryptoService _crypto = CryptoService();
 
   WalletProvider(this.core, this.repo, {this.node}) {
-    _restoreFromRepo();
+    _init();
   }
 
-  /// Recharge les wallets déjà connus du repository (survit aux rebuilds /
-  /// changements d'écran dans la même session). NB: `WalletRepository` est
-  /// aujourd'hui un cache en mémoire, donc ceci ne survit PAS à un vrai
-  /// redémarrage de l'app — pour ça il faudra brancher un stockage
-  /// persistant (ObjectBox déjà présent dans les dépendances de l'app mais
-  /// pas encore câblé : pas d'annotations @Entity ni de code généré via
-  /// build_runner, ou plus simple : shared_preferences en JSON).
+  Future<void> _init() async {
+    await repo.load();
+    _restoreFromRepo();
+    notifyListeners();
+  }
+
   void _restoreFromRepo() {
     for (final w in repo.all()) {
       core.restore(w);
@@ -37,30 +37,25 @@ class WalletProvider extends ChangeNotifier {
   Future<Wallet> createWallet() async {
     final keyPair = await _crypto.generateKeyPair();
     final publicKey = await keyPair.extractPublicKey();
-    final pubKeyHex = _bytesToHex(publicKey.bytes);
+    final pubKeyHex = _bytesToHex((publicKey as SimplePublicKey).bytes);
     final address = AddressGenerator.generate(pubKeyHex);
 
     final wallet = core.create(address, pubKeyHex);
-    repo.save(wallet);
+    await repo.save(wallet);
     notifyListeners();
 
-    // NOTE: la clé privée du KeyPair n'est volontairement pas conservée ici.
-    // Un vrai wallet doit stocker sa clé privée dans un coffre sécurisé
-    // (flutter_secure_storage / keystore Android) avant qu'on puisse signer
-    // les transactions. Tant que ce n'est pas fait, `signature` reste vide
-    // dans les tx émises par send() ci-dessous.
     return wallet;
   }
 
-  void send({
+  Future<void> send({
     required String from,
     required String to,
     required BigInt amount,
-  }) {
+  }) async {
     final ok = core.transfer(from, to, amount);
     if (!ok) return;
 
-    repo.syncFromCore(core);
+    await repo.syncFromCore(core);
 
     final tx = Transaction(
       id: IdGenerator.generateId("tx"),
@@ -69,10 +64,9 @@ class WalletProvider extends ChangeNotifier {
       amount: amount,
       approvals: const [],
       timestamp: DateTime.now().millisecondsSinceEpoch,
-      signature: "", // TODO: signer avec la clé privée du wallet une fois le stockage sécurisé en place
+      signature: "",
     );
 
-    // Commit local + diffusion aux pairs WebRTC connectés.
     node?.broadcastTx(tx.toJson());
 
     notifyListeners();

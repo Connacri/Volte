@@ -12,7 +12,6 @@ import 'features/ledger/ledger_screen.dart';
 import 'features/network/network_provider.dart';
 import 'features/network/network_screen.dart';
 
-import 'core/wallet/wallet_core.dart';
 import 'core/storage/repositories/wallet_repository.dart';
 import 'core/p2p/p2p_node.dart';
 import 'core/bootstrap/bootstrap_service.dart';
@@ -27,14 +26,12 @@ class VolteApp extends StatefulWidget {
 
 class _VolteAppState extends State<VolteApp> {
   late final P2PNode _node;
-  late final WalletCore _walletCore;
   late final WalletRepository _walletRepo;
 
   @override
   void initState() {
     super.initState();
     _node = P2PNode("volte-${DateTime.now().millisecondsSinceEpoch}");
-    _walletCore = WalletCore();
     _walletRepo = WalletRepository();
     if (!Platform.environment.containsKey('FLUTTER_TEST')) {
       _bootstrap();
@@ -63,7 +60,7 @@ class _VolteAppState extends State<VolteApp> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => WalletProvider(_walletCore, _walletRepo, node: _node),
+          create: (_) => WalletProvider(_node.wallet, _walletRepo, node: _node),
         ),
         ChangeNotifierProvider(create: (_) => ChatProvider(_node)),
         ChangeNotifierProvider(create: (_) => LedgerProvider(_node)),
