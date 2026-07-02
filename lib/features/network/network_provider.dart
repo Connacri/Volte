@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../core/dag/transaction_model.dart';
 import '../../core/p2p/p2p_node.dart';
 
 class NetworkProvider extends ChangeNotifier {
@@ -29,8 +30,8 @@ class NetworkProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void broadcast(Map<String, dynamic> msg) {
-    node.broadcastTx(msg);
+  void broadcast(Transaction tx) {
+    node.broadcastTx(tx);
   }
 
   List<String> get peers => node.p2p.peers.keys.toList();

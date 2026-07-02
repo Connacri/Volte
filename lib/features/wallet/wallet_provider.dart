@@ -52,12 +52,12 @@ class WalletProvider extends ChangeNotifier {
   /// Démarre TOUJOURS à solde zéro — aucune exception, aucun faucet
   /// implicite. C'est le comportement pour n'importe quel utilisateur.
   Future<Wallet> createWallet() async {
-    final keyPair = await _crypto.generateKeyPair() as SimpleKeyPair;
+    final keyPair = await _crypto.generateKeyPair();
     final publicKey = await keyPair.extractPublicKey();
     final pubKeyHex = _bytesToHex((publicKey as SimplePublicKey).bytes);
     final address = AddressGenerator.generate(pubKeyHex);
 
-    await KeypairStore.save(address, keyPair);
+    await KeypairStore.save(address, keyPair as SimpleKeyPair);
 
     final wallet = core.create(address, pubKeyHex); // balance = 0, toujours
     await repo.save(wallet);
@@ -82,16 +82,14 @@ class WalletProvider extends ChangeNotifier {
     }
 
     final keyPair = await Ed25519().newKeyPairFromSeed(seed);
-    final publicKey = await keyPair.extractPublicKey() as SimplePublicKey;
+    final publicKey = await keyPair.extractPublicKey();
     final pubKeyHex = _bytesToHex(publicKey.bytes);
     final address = AddressGenerator.generate(pubKeyHex);
 
     await KeypairStore.save(address, keyPair);
 
     var wallet = core.get(address);
-    if (wallet == null) {
-      wallet = core.create(address, pubKeyHex);
-    }
+    wallet ??= core.create(address, pubKeyHex);
 
     if (Genesis.isGenesisAddress(address) && wallet.balance == BigInt.zero) {
       core.debugFaucet(address, Genesis.maxSupply);
