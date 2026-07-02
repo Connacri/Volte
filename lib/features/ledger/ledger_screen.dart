@@ -22,6 +22,8 @@ class LedgerScreen extends StatelessWidget {
                   from: tx.from,
                   to: tx.to,
                   amount: tx.amount.toString(),
+                  isFinal: provider.isFinal(tx.id),
+                  confirmations: provider.confirmationsOf(tx.id),
                 );
               },
             ),
