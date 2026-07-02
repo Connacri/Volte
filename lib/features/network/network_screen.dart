@@ -126,7 +126,7 @@ class _NetworkScreenState extends State<NetworkScreen> {
                       Expanded(
                         child: OutlinedButton.icon(
                           icon: const Icon(Icons.qr_code_scanner),
-                          label: const Text("Scanner un QR"),
+                          label: const Text("QR Scan"),
                           onPressed: _connecting ? null : _scanQr,
                         ),
                       ),
