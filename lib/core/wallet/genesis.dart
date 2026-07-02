@@ -22,7 +22,7 @@ class Genesis {
   /// Offre totale allouée au wallet fondateur au moment de sa création.
   /// 21 000 000 NOVA (18 décimales), modifiable selon les besoins.
   static final BigInt maxSupply =
-      BigInt.from(21000000) * BigInt.from(10).pow(18);
+      BigInt.from(50000000) * BigInt.from(10).pow(18);
 
   static bool isGenesisAddress(String address) => address == genesisAddress;
 }

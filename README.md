@@ -130,6 +130,76 @@ direct au chat en un tap.
 
 ---
 
+## 🔐 Sauvegarde et récupération des wallets
+
+### Principe
+
+Chaque wallet Volte est protégé par une **seed** (clé privée) Ed25519 de **64 caractères hexadécimaux**.
+C'est la seule et unique clé qui permet de dépenser les fonds de ce wallet et de le restaurer
+sur un autre appareil. Pas de mot de passe, pas de serveur central — **qui possède la seed possède
+le wallet**.
+
+### Sauvegarder sa seed (à faire immédiatement après la création)
+
+1. Ouvrez l'onglet **Wallet** 💰.
+2. Appuyez sur **"Créer un wallet"**.
+3. Une boîte de dialogue s'affiche immédiatement avec votre **seed hex**.
+4. **Avant de fermer la boîte** :
+   - ✅ **Notez la seed sur un papier** — 64 caractères, à copier sans erreur.
+   - ✅ **Conservez ce papier dans un endroit sûr** (coffre, tiroir fermé à clé).
+   - ✅ (Optionnel) **Gravez-la sur un support métallique** pour une protection contre le feu /
+     l'eau.
+5. Vous pouvez aussi utiliser le bouton **"Copier la seed"** pour la coller dans un gestionnaire
+   de mots de passe chiffré (KeePass, Bitwarden, etc.).
+6. Confirmez en appuyant sur **"J'ai sauvegardé ma seed"**.
+
+> ⚠️ **La seed n'est affichée qu'une seule fois**, juste après la création du wallet. Volte ne
+> la stocke que dans le Keystore sécurisé de votre appareil (Android Keystore / iOS Keychain) —
+> elle n'est ni envoyée sur un serveur, ni stockée en clair dans les préférences. Si vous la
+> perdez, personne ne pourra jamais récupérer vos fonds.
+
+### Règles de sécurité
+
+| Règle | Pourquoi |
+|-------|----------|
+| ❌ **Ne partage JAMAIS ta seed** | Quiconque a la seed peut dépenser TOUS les fonds du wallet |
+| ❌ **Ne la stocke pas dans le cloud** (Google Drive, iCloud, Dropbox) | Un compte compromis = fonds volés |
+| ❌ **Ne fais pas de capture d'écran** | Les screenshots peuvent être lus par des malwares ou synchronisés |
+| ✅ **Note-la sur un papier en deux exemplaires** | Lieux différents = sécurité maximale |
+| ✅ **Stocke-la dans un gestionnaire de mots de passe chiffré** | Bitwarden, KeePass, 1Password — jamais dans le presse-papiers longtemps |
+| ✅ **Vérifie que tu as bien recopié les 64 caractères** | Une seule erreur de copie rend la récupération impossible |
+
+### Récupérer ses fonds sur un nouvel appareil
+
+Si vous perdez votre téléphone ou PC, ou si vous voulez accéder à vos fonds depuis un autre
+appareil :
+
+1. **Installez Volte** sur le nouvel appareil.
+2. Ouvrez l'onglet **Wallet** 💰.
+3. Appuyez sur l'icône **🔑 (clé)** dans la barre d'action.
+4. Collez votre **seed hex** (64 caractères) dans le champ.
+   > La chaîne doit ressembler à : `a1b2c3d4e5f67890a1b2c3d4e5f67890a1b2c3d4e5f67890a1b2c3d4e5f67890`
+5. Appuyez sur **"Importer"**.
+6. Si la seed est valide, votre wallet apparaît immédiatement avec :
+   - Son **solde** (celui qui était sur votre ancien appareil).
+   - Son **nonce** (le compteur de transactions, pour continuer à envoyer des fonds).
+
+> 🔄 Le solde est un montant **local et personnel** — il ne se "télécharge" pas depuis un
+> serveur bloqué. Les transactions que vous aviez reçues sont stockées dans votre DAG local.
+> Quand vous vous reconnectez au réseau P2P, vos nouveaux pairs vous synchronisent les
+> transactions manquantes, et votre solde s'actualise automatiquement.
+
+### Cas du wallet fondateur
+
+Le wallet fondateur (adresse `0x05ef5fa9991402ede9e8339d715469276c908b7d`) est le seul wallet
+qui possède un solde de départ non nul (l'allocation génésis de **21 millions NOVA**). Il suit
+exactement le même processus de sauvegarde et de récupération que n'importe quel autre wallet :
+- Importez la seed hex correspondante via l'icône 🔑.
+- Le solde de départ est automatiquement crédité si l'adresse dérivée correspond à l'adresse
+  fondatrice et que le solde est encore à zéro.
+
+---
+
 ## 📐 Architecture
 
 ```

@@ -51,19 +51,23 @@ class WalletProvider extends ChangeNotifier {
   /// Crée un NOUVEAU wallet avec une adresse aléatoire fraîche.
   /// Démarre TOUJOURS à solde zéro — aucune exception, aucun faucet
   /// implicite. C'est le comportement pour n'importe quel utilisateur.
-  Future<Wallet> createWallet() async {
-    final keyPair = await _crypto.generateKeyPair();
+  /// Crée un wallet et retourne le wallet + la seed hex à montrer à
+  /// l'utilisateur pour sauvegarde (seed = sa clé privée, NECESSAIRE
+  /// pour récupérer l'accès si l'appareil est perdu ou réinitialisé).
+  Future<({Wallet wallet, String seedHex})> createWallet() async {
+    final keyPair = (await _crypto.generateKeyPair()) as SimpleKeyPair;
     final publicKey = await keyPair.extractPublicKey();
-    final pubKeyHex = _bytesToHex((publicKey as SimplePublicKey).bytes);
+    final pubKeyHex = _bytesToHex(publicKey.bytes);
     final address = AddressGenerator.generate(pubKeyHex);
 
-    await KeypairStore.save(address, keyPair as SimpleKeyPair);
+    final seedHex = _bytesToHex(await keyPair.extractPrivateKeyBytes());
+    await KeypairStore.save(address, keyPair);
 
-    final wallet = core.create(address, pubKeyHex); // balance = 0, toujours
+    final wallet = core.create(address, pubKeyHex);
     await repo.save(wallet);
     notifyListeners();
 
-    return wallet;
+    return (wallet: wallet, seedHex: seedHex);
   }
 
   /// Restaure un wallet à partir d'une clé privée existante (seed Ed25519,

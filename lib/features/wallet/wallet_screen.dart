@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'wallet_provider.dart';
 import 'send_screen.dart';
@@ -26,10 +27,56 @@ class WalletScreen extends StatelessWidget {
 
   Future<void> _createWallet(BuildContext context) async {
     final provider = context.read<WalletProvider>();
-    final wallet = await provider.createWallet();
+    final result = await provider.createWallet();
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Wallet créé : ${wallet.address}")),
+    await showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Wallet créé — Sauvegarde obligatoire"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Voici ta seed (clé privée). Elle est le SEUL moyen "
+              "de récupérer tes fonds si tu perds l'accès à cet appareil.\n\n"
+              "Note-la sur un papier et conserve-la dans un endroit sûr. "
+              "Ne la partage JAMAIS avec personne.",
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade900,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: SelectableText(
+                result.seedHex,
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          FilledButton.icon(
+            icon: const Icon(Icons.copy, size: 16),
+            label: const Text("Copier la seed"),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: result.seedHex));
+              ScaffoldMessenger.of(ctx).showSnackBar(
+                const SnackBar(content: Text("Seed copiée dans le presse-papiers")),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text("J'ai sauvegardé ma seed"),
+          ),
+        ],
+      ),
     );
   }
 
@@ -44,8 +91,9 @@ class WalletScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Colle la clé privée (seed hex, 64 caractères).\n"
-              "Ne partage jamais cette valeur avec qui que ce soit.",
+              "Colle ta seed (64 caractères hex) que tu as sauvegardée "
+              "lors de la création du wallet.\n"
+              "Ne partage jamais cette valeur.",
               style: TextStyle(fontSize: 13, color: Colors.grey),
             ),
             const SizedBox(height: 12),
@@ -54,7 +102,7 @@ class WalletScreen extends StatelessWidget {
               obscureText: true,
               maxLines: 1,
               decoration: const InputDecoration(
-                labelText: "Clé privée (seed hex)",
+                labelText: "Seed (64 caractères hex)",
                 border: OutlineInputBorder(),
               ),
             ),

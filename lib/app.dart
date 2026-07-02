@@ -16,7 +16,7 @@ import 'core/storage/repositories/wallet_repository.dart';
 import 'core/p2p/p2p_node.dart';
 import 'core/bootstrap/bootstrap_service.dart';
 import 'core/utils/logger.dart';
-//
+import 'core/utils/node_identity.dart';
 class VolteApp extends StatefulWidget {
   const VolteApp({super.key});
 
@@ -25,24 +25,28 @@ class VolteApp extends StatefulWidget {
 }
 
 class _VolteAppState extends State<VolteApp> {
-  late final P2PNode _node;
+  P2PNode? _node;
   late final WalletRepository _walletRepo;
 
   @override
   void initState() {
     super.initState();
-    _node = P2PNode("volte-${DateTime.now().millisecondsSinceEpoch}");
     _walletRepo = WalletRepository();
     if (!Platform.environment.containsKey('FLUTTER_TEST')) {
-      _bootstrap();
+      _initNode();
     }
   }
 
-  Future<void> _bootstrap() async {
+  Future<void> _initNode() async {
+    final nodeId = await NodeIdentity.getOrCreate();
+    final node = P2PNode(nodeId);
+    _node = node;
+    if (!mounted) return;
+    setState(() {});
     try {
       final seeds = BootstrapService.getSeeds();
       if (seeds.isNotEmpty) {
-        await _node.start(signalingUrl: seeds.first);
+        await node.start(signalingUrl: seeds.first);
       }
     } catch (e) {
       Logger.error("Bootstrap failed: $e");
@@ -51,20 +55,28 @@ class _VolteAppState extends State<VolteApp> {
 
   @override
   void dispose() {
-    _node.stop();
+    _node?.stop();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final node = _node;
+    if (node == null) {
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
+    }
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => WalletProvider(_node.wallet, _walletRepo, node: _node),
+          create: (_) => WalletProvider(node.wallet, _walletRepo, node: node),
         ),
-        ChangeNotifierProvider(create: (_) => ChatProvider(_node)),
-        ChangeNotifierProvider(create: (_) => LedgerProvider(_node)),
-        ChangeNotifierProvider(create: (_) => NetworkProvider(_node)),
+        ChangeNotifierProvider(create: (_) => ChatProvider(node)),
+        ChangeNotifierProvider(create: (_) => LedgerProvider(node)),
+        ChangeNotifierProvider(create: (_) => NetworkProvider(node)),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

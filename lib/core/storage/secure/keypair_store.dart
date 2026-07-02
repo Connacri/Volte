@@ -20,6 +20,10 @@ class KeypairStore {
     await _storage.write(key: '$_prefix$address', value: hex);
   }
 
+  static Future<String?> getSeedHex(String address) async {
+    return await _storage.read(key: '$_prefix$address');
+  }
+
   static Future<SimpleKeyPair?> load(String address) async {
     final hex = await _storage.read(key: '$_prefix$address');
     if (hex == null || hex.isEmpty) return null;
