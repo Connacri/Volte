@@ -31,6 +31,7 @@ class WalletRepository {
           address: json['address'],
           publicKey: json['publicKey'],
           balance: BigInt.parse(json['balance']),
+          nonce: json['nonce'] as int? ?? 0,
         ));
       }
     }
