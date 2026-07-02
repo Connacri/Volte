@@ -80,7 +80,7 @@ class _VolteAppState extends State<VolteApp> {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: "Volte",
+        title: "Doro",
         theme: ThemeData(
           brightness: Brightness.dark,
           colorSchemeSeed: const Color(0xFF6C5CE7),
