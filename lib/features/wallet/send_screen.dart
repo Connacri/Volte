@@ -12,6 +12,7 @@ class SendScreen extends StatefulWidget {
 class _SendScreenState extends State<SendScreen> {
   final toCtrl = TextEditingController();
   final amountCtrl = TextEditingController();
+  bool _sending = false;
 
   @override
   void dispose() {
@@ -20,29 +21,48 @@ class _SendScreenState extends State<SendScreen> {
     super.dispose();
   }
 
-  void _send() {
+  Future<void> _send() async {
     final to = toCtrl.text.trim();
     final amountStr = amountCtrl.text.trim();
     if (to.isEmpty || amountStr.isEmpty) return;
 
-    final amount = BigInt.tryParse(amountStr);
-    if (amount == null || amount <= BigInt.zero) return;
+    final humanAmount = double.tryParse(amountStr);
+    if (humanAmount == null || humanAmount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Montant invalide")),
+      );
+      return;
+    }
+    final amount = BigInt.from(humanAmount * 1e18);
 
     final provider = context.read<WalletProvider>();
     final wallets = provider.wallets;
     if (wallets.isEmpty) return;
 
-    provider.send(
+    setState(() => _sending = true);
+    final ok = await provider.send(
       from: wallets.first.address,
       to: to,
       amount: amount,
     );
+    if (!mounted) return;
+    setState(() => _sending = false);
 
-    toCtrl.clear();
-    amountCtrl.clear();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Transaction sent")),
-    );
+    if (ok) {
+      toCtrl.clear();
+      amountCtrl.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Transaction envoyée — en attente de confirmation par le réseau"),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Échec de l'envoi (solde insuffisant ou clé introuvable)"),
+        ),
+      );
+    }
   }
 
   @override
@@ -55,7 +75,7 @@ class _SendScreenState extends State<SendScreen> {
           TextField(
             controller: toCtrl,
             decoration: const InputDecoration(
-              labelText: "Recipient address",
+              labelText: "Adresse du destinataire",
               border: OutlineInputBorder(),
             ),
           ),
@@ -63,15 +83,21 @@ class _SendScreenState extends State<SendScreen> {
           TextField(
             controller: amountCtrl,
             decoration: const InputDecoration(
-              labelText: "Amount (wei)",
+              labelText: "Montant (NOVA)",
               border: OutlineInputBorder(),
             ),
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: _send,
-            child: const Text("Send"),
+            onPressed: _sending ? null : _send,
+            child: _sending
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text("Envoyer"),
           ),
         ],
       ),
