@@ -1,11 +1,13 @@
+import 'genesis.dart';
+
 class TokenConfig {
   TokenConfig._();
 
   static const String name = "NovaCoin";
-  static const String symbol = "NVC";
+  static const String symbol = "NOVA";
 
-  static final BigInt maxSupply =
-      BigInt.from(50) * BigInt.from(10).pow(9) * BigInt.from(10).pow(18);
+  /// Sourced from Genesis (single source of truth).
+  static BigInt get maxSupply => Genesis.maxSupply;
 
   static BigInt circulating = BigInt.zero;
 

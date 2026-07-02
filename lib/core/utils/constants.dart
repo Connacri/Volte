@@ -1,3 +1,5 @@
+import '../wallet/genesis.dart';
+
 class AppConstants {
   AppConstants._();
 
@@ -10,9 +12,8 @@ class AppConstants {
   static const int maxTxPerBlockEquivalent = 1000;
   static const int confirmationThreshold = 3;
 
-  // Token (50B supply)
-  static final BigInt maxSupply =
-      BigInt.from(50_000_000_000) * BigInt.from(10).pow(18);
+  // Token — sourced from Genesis (single source of truth)
+  static BigInt get maxSupply => Genesis.maxSupply;
 
   // Security
   static const int reputationTrustThreshold = 20;

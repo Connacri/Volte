@@ -3,9 +3,10 @@ import 'package:provider/provider.dart';
 import 'wallet_provider.dart';
 import 'send_screen.dart';
 import '../../core/wallet/genesis.dart';
+import '../../core/wallet/token_config.dart';
 
 /// Formate un solde stocké en unité atomique (18 décimales) en un montant
-/// lisible, ex. 21000000 * 10^18 -> "21 000 000.000000 NOVA".
+/// lisible.
 String formatNova(BigInt atomicBalance) {
   const decimals = 18;
   final divisor = BigInt.from(10).pow(decimals);
@@ -17,7 +18,7 @@ String formatNova(BigInt atomicBalance) {
         (m) => ' ',
       );
 
-  return "$wholeStr.$fraction NOVA";
+  return "$wholeStr.$fraction ${TokenConfig.symbol}";
 }
 
 class WalletScreen extends StatelessWidget {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'wallet_provider.dart';
+import '../../core/wallet/token_config.dart';
 
 class SendScreen extends StatefulWidget {
   const SendScreen({super.key});
@@ -83,7 +84,7 @@ class _SendScreenState extends State<SendScreen> {
           TextField(
             controller: amountCtrl,
             decoration: const InputDecoration(
-              labelText: "Montant (NOVA)",
+              labelText: "Montant (${TokenConfig.symbol})",
               border: OutlineInputBorder(),
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
