@@ -37,6 +37,14 @@ class P2PNode {
 
   Stream<void> get networkChanges => _networkChangeController.stream;
 
+  final StreamController<void> _walletChangeController =
+      StreamController<void>.broadcast();
+
+  /// Émet un événement chaque fois que MON wallet local est crédité par
+  /// une transaction reçue du réseau (donc jamais pour un solde qui ne
+  /// m'appartient pas).
+  Stream<void> get walletChanges => _walletChangeController.stream;
+
   SignalingClient? _signaling;
   Timer? _healthTimer;
 
@@ -63,7 +71,24 @@ class P2PNode {
         _messageController.add({"from": from, "data": data});
 
         if (data is Map && data["type"] == "tx") {
-          dag.addFromNetwork(Map<String, dynamic>.from(data));
+          final txMap = Map<String, dynamic>.from(data);
+          dag.addFromNetwork(txMap);
+
+          // Crédit réel côté récepteur : seulement si l'adresse "to" est
+          // un wallet que JE possède localement (creditIfLocal renvoie
+          // false sinon). C'est ce qui rend le solde reçu réel, plutôt
+          // que juste une entrée de journal sans effet.
+          final to = txMap["to"] as String?;
+          final amountStr = txMap["amount"] as String?;
+          if (to != null && amountStr != null) {
+            final amount = BigInt.tryParse(amountStr);
+            if (amount != null) {
+              final credited = wallet.creditIfLocal(to, amount);
+              if (credited && !_walletChangeController.isClosed) {
+                _walletChangeController.add(null);
+              }
+            }
+          }
         }
       } catch (e) {
         Logger.error("Failed to process message from $from: $e");
@@ -194,9 +219,18 @@ class P2PNode {
     }
   }
 
+  /// Connexion à un pair à partir de son ID (collé manuellement ou lu via
+  /// QR code). C'est le point d'entrée utilisé par l'UI "Ajouter un pair".
   Future<void> connectPeer(String addr) async {
-    final peer = Peer(id: addr, address: addr, lastSeen: DateTime.now());
-    await peerManager.addPeer(peer);
+    final peerId = addr.trim();
+    if (peerId.isEmpty || peerId == nodeId) return;
+    if (p2p.peers.containsKey(peerId)) return; // déjà connecté
+    if (_signaling == null || !isSignalingConnected) {
+      throw StateError(
+        "Non connecté au serveur de signaling — impossible d'ajouter un pair pour l'instant.",
+      );
+    }
+    await connectToPeer(peerId);
   }
 
   void broadcastTx(Map<String, dynamic> txData) {
@@ -219,6 +253,7 @@ class P2PNode {
     _signaling?.close();
     await _messageController.close();
     await _networkChangeController.close();
+    await _walletChangeController.close();
     Logger.info("P2P node $nodeId stopped");
   }
 }
