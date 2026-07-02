@@ -1,6 +1,7 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../../core/bootstrap/bootstrap_service.dart';
 import 'network_provider.dart';
 import 'my_id_card.dart';
@@ -47,30 +48,11 @@ class _NetworkScreenState extends State<NetworkScreen> {
   }
 
   Future<void> _scanQr() async {
-    final status = await Permission.camera.request();
-    if (!mounted) return;
-
-    if (status.isGranted) {
-      final scanned = await Navigator.of(context).push<String>(
-        MaterialPageRoute(builder: (_) => const QrScanScreen()),
-      );
-      if (scanned != null && scanned.isNotEmpty) {
-        await _addPeer(scanned);
-      }
-      return;
-    }
-
-    if (status.isPermanentlyDenied) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("Permission caméra refusée définitivement. Va dans Paramètres > Applications > Doro > Permissions pour l'autoriser."),
-          action: SnackBarAction(label: "Paramètres", onPressed: openAppSettings),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Permission caméra nécessaire pour scanner les QR codes.")),
-      );
+    final scanned = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const QrScanScreen()),
+    );
+    if (scanned != null && scanned.isNotEmpty) {
+      await _addPeer(scanned);
     }
   }
 
@@ -143,13 +125,14 @@ class _NetworkScreenState extends State<NetworkScreen> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.qr_code_scanner),
-                          label: const Text("QR Scan"),
-                          onPressed: _connecting ? null : _scanQr,
+                      if (!Platform.isWindows)
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.qr_code_scanner),
+                            label: const Text("QR Scan"),
+                            onPressed: _connecting ? null : _scanQr,
+                          ),
                         ),
-                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton.icon(
