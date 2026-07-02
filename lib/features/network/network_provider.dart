@@ -12,6 +12,8 @@ class NetworkProvider extends ChangeNotifier {
 
   bool get isConnected => node.isSignalingConnected || peers.isNotEmpty;
 
+  String get myId => node.nodeId;
+
   void init() {
     notifyListeners();
   }
